@@ -1,10 +1,271 @@
-// main template for talos-capi-cluster-cloudscale
+local com = import 'lib/commodore.libjsonnet';
 local kap = import 'lib/kapitan.libjsonnet';
 local kube = import 'lib/kube.libjsonnet';
+
 local inv = kap.inventory();
-// The hiera parameters for the component
 local params = inv.parameters.talos_capi_cluster_cloudscale;
 
-// Define outputs below
+local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
+
+local ccmResourceSetLabelKey = 'talos-capi-cluster-cloudscale.syn.tools/cloudscale-ccm';
+
+local capiCluster = params.cluster {
+  apiVersion: 'cluster.x-k8s.io/v1beta2',
+  kind: 'Cluster',
+  metadata+: {
+    name: params.clusterName,
+    namespace: params.namespace,
+    labels+: {
+      [ccmResourceSetLabelKey]: 'cloudscale',
+    },
+  },
+  spec+: {
+    infrastructureRef: {
+      apiGroup: 'infrastructure.cluster.x-k8s.io',
+      kind: 'CloudscaleCluster',
+      name: params.clusterName,
+    },
+    controlPlaneRef: {
+      apiGroup: 'controlplane.cluster.x-k8s.io',
+      kind: 'TalosControlPlane',
+      name: params.clusterName,
+    },
+  },
+};
+
+local capiCloudscaleCluster = params.cloudscaleCluster {
+  apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
+  kind: 'CloudscaleCluster',
+  metadata+: {
+    name: params.clusterName,
+    namespace: params.namespace,
+  },
+  spec+: {
+    networks: [
+      {
+        name: params.cloudscale.privateNetwork.name,
+        uuid: params.cloudscale.privateNetwork.uuid,
+      },
+    ],
+  },
+};
+
+local capiCloudscaleMachineTemplateControlPlane = {
+  apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
+  kind: 'CloudscaleMachineTemplate',
+  metadata+: {
+    name: '%s-control-plane' % params.clusterName,
+    namespace: params.namespace,
+  },
+  spec: {
+    template: {
+      spec: {
+        flavor: params.controlPlane.flavor,
+        image: cloudscaleImageSlug,
+        rootVolumeSize: params.controlPlane.rootVolumeSize,
+        serverGroup: {
+          name: $.metadata.name,
+        },
+        interfaces: [
+          {
+            network: params.cloudscale.privateNetwork.name,
+          },
+        ],
+      },
+    },
+  },
+};
+
+local talosStrategicPatch = {
+  machine: {
+    network: {
+      interfaces: [
+        {
+          deviceSelector: {
+            physical: true,
+          },
+          dhcp: true,
+        },
+      ],
+    },
+    install: {
+      disk: '/dev/sda',
+    },
+  },
+  cluster: {
+    // TODO(sg): document how to inject CCM manifests during bootstrap
+    externalCloudProvider: {
+      enabled: true,
+    },
+  },
+};
+
+local capiTalosControlPlane = params.talosControlPlane {
+  apiVersion: 'controlplane.cluster.x-k8s.io/v1alpha3',
+  kind: 'TalosControlPlane',
+  metadata+: {
+    name: params.clusterName,
+    namespace: params.namespace,
+  },
+  spec+: {
+    infrastructureTemplate: {
+      apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
+      kind: 'CloudscaleMachineTemplate',
+      name: capiCloudscaleMachineTemplateControlPlane.metadata.name,
+    },
+    controlPlaneConfig: {
+      controlplane: {
+        generateType: 'controlplane',
+        talosVersion: params.talosVersion,
+        hostname: {
+          // we want to use the VM name defined by the cloudscale CAPI
+          // provider.
+          source: 'InfrastructureName',
+        },
+        strategicPatches: [
+          std.manifestJsonMinified(talosStrategicPatch {
+            install+: {
+              // TODO(sg): do installers for custom schematic ids even exist?
+              image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
+                schematic_uuid: params.talosSchematicUUID,
+                version: params.talosVersion,
+              },
+            },
+          }),
+        ],
+      },
+    },
+  },
+};
+
+// NOTE(sg): figure out if this is even needed after initial bootstrap
+local capiClusterResourceSetCloudscaleCCM = {
+  apiVersion: 'addons.cluster.x-k8s.io/v1beta2',
+  kind: 'ClusterResourceSet',
+  metadata: {
+    name: 'cloudscale-ccm-%s' % params.clusterName,
+    namespace: params.namespace,
+  },
+  spec: {
+    strategy: 'ApplyOnce',
+    clusterSelector: {
+      matchLabels: {
+        [ccmResourceSetLabelKey]: 'cloudscale',
+      },
+    },
+    resources: [
+      // NOTE(sg): the configmap is externally generated for bootstrap
+      {
+        name: '%s-ccm' % params.clusterName,
+        kind: 'ConfigMap',
+      },
+    ],
+  },
+};
+
+local capiWorkerGroup(name) =
+  local machineDeployment = {
+    apiVersion: 'cluster.x-k8s.io/v1beta2',
+    kind: 'MachineDeployment',
+    metadata: {
+      name: name,
+      namespace: params.namespace,
+    },
+    spec: {
+      clusterName: params.clusterName,
+      replicas: params.workerGroups[name].count,
+      selector: {
+        matchLabels: null,
+      },
+      template: {
+        spec: {
+          clusterName: params.clusterName,
+          version: params.talosVersion,
+          bootstrap: {
+            configRef: {
+              name: name,
+              apiGroup: 'bootstrap.cluster.x-k8s.io',
+              kind: 'TalosConfigTemplate',
+            },
+          },
+          infrastructureRef: {
+            name: name,
+            apiGroup: 'infrastructure.cluster.x-k8s.io',
+            kind: 'CloudscaleMachineTemplate',
+          },
+        },
+      },
+    },
+  };
+  local cloudscaleMachineTemplate = {
+    apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
+    kind: 'CloudscaleMachineTemplate',
+    metadata: {
+      name: name,
+      namespace: params.namespace,
+    },
+    spec: {
+      template: {
+        spec: {
+          flavor: params.workerGroups[name].flavor,
+          image: cloudscaleImageSlug,
+          rootVolumeSize: params.workerGroups[name].rootVolumeSize,
+          serverGroup: {
+            name: name,
+          },
+          interfaces: [
+            {
+              network: params.cloudscale.privateNetwork.name,
+            },
+          ],
+        },
+      },
+    },
+  };
+  local talosConfigTemplate = {
+    apiVersion: 'bootstrap.cluster.x-k8s.io/v1alpha3',
+    kind: 'TalosConfigTemplate',
+    metadata: {
+      name: name,
+      namespace: params.namespace,
+    },
+    spec: {
+      template: {
+        spec: {
+          generateType: 'join',
+          talosVersion: params.talosVersion,
+          hostname: {
+            source: 'InfrastructureName',
+          },
+          strategicPatches: [
+            std.manifestJsonMinified(talosStrategicPatch),
+          ],
+        },
+      },
+    },
+  };
+
+  // NOTE(sg): we're slightly abusing com.generateResources() below. The
+  // function doesn't really support rendering multiple objects instead of
+  // rendering a single object and merging the parameter dict values into it.
+  {
+    name: name,
+    resources: [
+      machineDeployment,
+      cloudscaleMachineTemplate,
+      talosConfigTemplate,
+    ],
+  };
+
 {
+  capi_cluster: [
+    capiCluster,
+    capiCloudscaleCluster,
+    capiCloudscaleMachineTemplateControlPlane,
+    capiTalosControlPlane,
+    capiClusterResourceSetCloudscaleCCM,
+  ],
+} + {
+  ['worker_group_%s' % wg.name]: wg.resources
+  for wg in com.generateResources(params.workerGroups, capiWorkerGroup)
 }

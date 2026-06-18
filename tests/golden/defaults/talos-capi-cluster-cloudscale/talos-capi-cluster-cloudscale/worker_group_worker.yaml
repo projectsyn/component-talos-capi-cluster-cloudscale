@@ -1,0 +1,54 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: worker
+  namespace: syn-cluster-api
+spec:
+  clusterName: c-green-test-1234
+  replicas: 1
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: TalosConfigTemplate
+          name: worker
+      clusterName: c-green-test-1234
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: CloudscaleMachineTemplate
+        name: worker
+      version: 1.13.4
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudscaleMachineTemplate
+metadata:
+  name: worker
+  namespace: syn-cluster-api
+spec:
+  template:
+    spec:
+      flavor: plus-16-4
+      image: custom:talos-v1.13.4-37656798
+      interfaces:
+        - network: privnet_c-green-test-1234
+      rootVolumeSize: 50
+      serverGroup:
+        name: worker
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: TalosConfigTemplate
+metadata:
+  name: worker
+  namespace: syn-cluster-api
+spec:
+  template:
+    spec:
+      generateType: join
+      hostname:
+        source: InfrastructureName
+      strategicPatches:
+        - '{"cluster":{"externalCloudProvider":{"enabled":true}},"machine":{"install":{"disk":"/dev/sda"},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
+      talosVersion: 1.13.4
