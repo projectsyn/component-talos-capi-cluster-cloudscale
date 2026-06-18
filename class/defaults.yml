@@ -49,6 +49,7 @@ parameters:
       spec:
         region: ${talos_capi_cluster_cloudscale:cloudscale:region}
         credentialsRef:
+          # TODO(sg): figure out the real default name here.
           name: cloudscale-credentials
 
     talosControlPlane: {}
