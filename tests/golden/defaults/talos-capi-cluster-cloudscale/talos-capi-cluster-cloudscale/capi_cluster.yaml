@@ -32,7 +32,7 @@ spec:
   credentialsRef:
     name: cloudscale-credentials
   networks:
-    - name: privnet_c-green-test-1234
+    - name: privnet-c-green-test-1234
       uuid: TO_BE_REPLACED
   region: rma1
 ---
@@ -47,7 +47,7 @@ spec:
       flavor: plus-16-4
       image: custom:talos-v1.13.4-37656798
       interfaces:
-        - network: privnet_c-green-test-1234
+        - network: privnet-c-green-test-1234
       rootVolumeSize: 50
       serverGroup:
         name: c-green-test-1234-control-plane

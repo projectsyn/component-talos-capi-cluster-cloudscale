@@ -18,7 +18,8 @@ parameters:
       customImageSlug: talos-v${talos_capi_cluster_cloudscale:talosVersion}-37656798
       # TODO(sg): decide on default sizing
       privateNetwork:
-        name: privnet_${talos_capi_cluster_cloudscale:clusterName}
+        # TODO(sg): does this need to match the privnet name on cloudscale?
+        name: privnet-${talos_capi_cluster_cloudscale:clusterName}
         uuid: TO_BE_REPLACED
       region: ${facts:region}
 
