@@ -125,11 +125,13 @@ local capiTalosControlPlane = params.talosControlPlane {
         },
         strategicPatches: [
           std.manifestJsonMinified(talosStrategicPatch {
-            install+: {
-              // TODO(sg): do installers for custom schematic ids even exist?
-              image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
-                schematic_uuid: params.talosSchematicUUID,
-                version: params.talosVersion,
+            machine+: {
+              install+: {
+                // TODO(sg): do installers for custom schematic ids even exist?
+                image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
+                  schematic_uuid: params.talosSchematicUUID,
+                  version: params.talosVersion,
+                },
               },
             },
           }),
