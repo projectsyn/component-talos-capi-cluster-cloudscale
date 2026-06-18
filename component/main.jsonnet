@@ -183,7 +183,7 @@ local capiWorkerGroup(name) =
       template: {
         spec: {
           clusterName: params.clusterName,
-          version: params.talosVersion,
+          version: params.kubernetesVersion,
           bootstrap: {
             configRef: {
               name: name,
