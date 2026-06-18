@@ -1,0 +1,5 @@
+= talos-capi-cluster-cloudscale
+
+talos-capi-cluster-cloudscale is a Commodore component to manage talos-capi-cluster-cloudscale.
+
+See the xref:references/parameters.adoc[parameters] reference for further details.

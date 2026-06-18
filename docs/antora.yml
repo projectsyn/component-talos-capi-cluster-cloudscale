@@ -1,0 +1,6 @@
+name: talos-capi-cluster-cloudscale
+title: talos-capi-cluster-cloudscale
+version: master
+start_page: ROOT:index.adoc
+nav:
+  - modules/ROOT/partials/nav.adoc

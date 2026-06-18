@@ -1,0 +1,5 @@
+parameters:
+  talos_capi_cluster_cloudscale:
+    =_metadata:
+      multi_tenant: true
+    namespace: syn-talos-capi-cluster-cloudscale
