@@ -108,6 +108,7 @@ local capiTalosControlPlane = params.talosControlPlane {
     namespace: params.namespace,
   },
   spec+: {
+    version: params.kubernetesVersion,
     infrastructureTemplate: {
       apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
       kind: 'CloudscaleMachineTemplate',
