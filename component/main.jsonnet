@@ -7,7 +7,7 @@ local params = inv.parameters.talos_capi_cluster_cloudscale;
 
 local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
 
-local ccmResourceSetLabelKey = 'talos-capi-cluster-cloudscale.syn.tools/cloudscale-ccm';
+local resourceSetLabelKey = 'talos-capi-cluster-cloudscale.syn.tools/bootstrap';
 
 local capiCluster = params.cluster {
   apiVersion: 'cluster.x-k8s.io/v1beta2',
@@ -16,7 +16,7 @@ local capiCluster = params.cluster {
     name: params.clusterName,
     namespace: params.namespace,
     labels+: {
-      [ccmResourceSetLabelKey]: 'cloudscale',
+      [resourceSetLabelKey]: 'cloudscale',
     },
   },
   spec+: {
@@ -142,24 +142,28 @@ local capiTalosControlPlane = params.talosControlPlane {
 };
 
 // NOTE(sg): figure out if this is even needed after initial bootstrap
-local capiClusterResourceSetCloudscaleCCM = {
+local capiClusterResourceSetBootstrap = {
   apiVersion: 'addons.cluster.x-k8s.io/v1beta2',
   kind: 'ClusterResourceSet',
   metadata: {
-    name: 'cloudscale-ccm-%s' % params.clusterName,
+    name: 'cloudscale-bootstrap-%s' % params.clusterName,
     namespace: params.namespace,
   },
   spec: {
     strategy: 'ApplyOnce',
     clusterSelector: {
       matchLabels: {
-        [ccmResourceSetLabelKey]: 'cloudscale',
+        [resourceSetLabelKey]: 'cloudscale',
       },
     },
     resources: [
-      // NOTE(sg): the configmap is externally generated for bootstrap
+      // NOTE(sg): the configmaps are externally generated for bootstrap
       {
         name: '%s-ccm' % params.clusterName,
+        kind: 'ConfigMap',
+      },
+      {
+        name: '%s-cilium' % params.clusterName,
         kind: 'ConfigMap',
       },
     ],
@@ -266,7 +270,7 @@ local capiWorkerGroup(name) =
     capiCloudscaleCluster,
     capiCloudscaleMachineTemplateControlPlane,
     capiTalosControlPlane,
-    capiClusterResourceSetCloudscaleCCM,
+    capiClusterResourceSetBootstrap,
   ],
 } + {
   ['worker_group_%s' % wg.name]: wg.resources
