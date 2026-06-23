@@ -39,7 +39,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
 metadata:
-  name: c-green-test-1234-control-plane
+  name: c-green-test-1234-control-plane-e84c4ba30597bd6a
   namespace: syn-cluster-api
 spec:
   template:
@@ -69,7 +69,7 @@ spec:
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: CloudscaleMachineTemplate
-    name: c-green-test-1234-control-plane
+    name: c-green-test-1234-control-plane-e84c4ba30597bd6a
   version: 1.36.1
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta2

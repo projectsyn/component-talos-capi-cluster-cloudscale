@@ -9,38 +9,21 @@ local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
 
 local resourceSetLabelKey = 'talos-capi-cluster-cloudscale.syn.tools/bootstrap';
 
-local capiCluster = params.cluster {
-  apiVersion: 'cluster.x-k8s.io/v1beta2',
-  kind: 'Cluster',
-  metadata+: {
-    name: params.clusterName,
-    namespace: params.namespace,
-    labels+: {
-      [resourceSetLabelKey]: 'cloudscale',
-    },
-  },
-  spec+: {
-    infrastructureRef: {
-      apiGroup: 'infrastructure.cluster.x-k8s.io',
-      kind: 'CloudscaleCluster',
-      name: params.clusterName,
-    },
-    controlPlaneRef: {
-      apiGroup: 'controlplane.cluster.x-k8s.io',
-      kind: 'TalosControlPlane',
-      name: params.clusterName,
-    },
-  },
-};
+// TODO(sg): figure out which resources need to have `nameWithHash()`
+local nameWithHash(name, spec, length=16) =
+  '%s-%s' % [
+    name,
+    std.sha256(std.manifestJsonMinified(spec))[:length],
+  ];
 
-local capiCloudscaleCluster = params.cloudscaleCluster {
+local capiCloudscaleCluster = {
   apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
   kind: 'CloudscaleCluster',
-  metadata+: {
+  metadata+: std.get(params.cloudscaleCluster, 'metadata', {}) {
     name: params.clusterName,
     namespace: params.namespace,
   },
-  spec+: {
+  spec+: params.cloudscaleCluster.spec {
     networks: [
       {
         name: params.cloudscale.privateNetwork.name,
@@ -54,7 +37,7 @@ local capiCloudscaleMachineTemplateControlPlane = {
   apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
   kind: 'CloudscaleMachineTemplate',
   metadata+: {
-    name: '%s-control-plane' % params.clusterName,
+    name: nameWithHash('%s-control-plane' % params.clusterName, $.spec),
     namespace: params.namespace,
   },
   spec: {
@@ -64,7 +47,7 @@ local capiCloudscaleMachineTemplateControlPlane = {
         image: cloudscaleImageSlug,
         rootVolumeSize: params.controlPlane.rootVolumeSize,
         serverGroup: {
-          name: $.metadata.name,
+          name: '%s-control-plane' % params.clusterName,
         },
         interfaces: [
           {
@@ -103,11 +86,11 @@ local talosStrategicPatch = {
 local capiTalosControlPlane = params.talosControlPlane {
   apiVersion: 'controlplane.cluster.x-k8s.io/v1alpha3',
   kind: 'TalosControlPlane',
-  metadata+: {
+  metadata+: std.get(params.talosControlPlane, 'metadata', {}) {
     name: params.clusterName,
     namespace: params.namespace,
   },
-  spec+: {
+  spec+: params.talosControlPlane.spec {
     version: params.kubernetesVersion,
     infrastructureTemplate: {
       apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
@@ -128,6 +111,7 @@ local capiTalosControlPlane = params.talosControlPlane {
             machine+: {
               install+: {
                 // TODO(sg): do installers for custom schematic ids even exist?
+                // TODO(sg): figure out the new way to do this
                 image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
                   schematic_uuid: params.talosSchematicUUID,
                   version: params.talosVersion,
@@ -171,35 +155,24 @@ local capiClusterResourceSetBootstrap = {
 };
 
 local capiWorkerGroup(name) =
-  local machineDeployment = {
-    apiVersion: 'cluster.x-k8s.io/v1beta2',
-    kind: 'MachineDeployment',
+  local talosConfigTemplate = {
+    apiVersion: 'bootstrap.cluster.x-k8s.io/v1alpha3',
+    kind: 'TalosConfigTemplate',
     metadata: {
-      name: name,
+      name: nameWithHash(name, $.spec),
       namespace: params.namespace,
     },
     spec: {
-      clusterName: params.clusterName,
-      replicas: params.workerGroups[name].count,
-      selector: {
-        matchLabels: null,
-      },
       template: {
         spec: {
-          clusterName: params.clusterName,
-          version: params.kubernetesVersion,
-          bootstrap: {
-            configRef: {
-              name: name,
-              apiGroup: 'bootstrap.cluster.x-k8s.io',
-              kind: 'TalosConfigTemplate',
-            },
+          generateType: 'join',
+          talosVersion: params.talosVersion,
+          hostname: {
+            source: 'InfrastructureName',
           },
-          infrastructureRef: {
-            name: name,
-            apiGroup: 'infrastructure.cluster.x-k8s.io',
-            kind: 'CloudscaleMachineTemplate',
-          },
+          strategicPatches: [
+            std.manifestJsonMinified(talosStrategicPatch),
+          ],
         },
       },
     },
@@ -208,7 +181,7 @@ local capiWorkerGroup(name) =
     apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
     kind: 'CloudscaleMachineTemplate',
     metadata: {
-      name: name,
+      name: nameWithHash(name, $.spec),
       namespace: params.namespace,
     },
     spec: {
@@ -229,24 +202,40 @@ local capiWorkerGroup(name) =
       },
     },
   };
-  local talosConfigTemplate = {
-    apiVersion: 'bootstrap.cluster.x-k8s.io/v1alpha3',
-    kind: 'TalosConfigTemplate',
+  local machineDeployment = {
+    apiVersion: 'cluster.x-k8s.io/v1beta2',
+    kind: 'MachineDeployment',
     metadata: {
       name: name,
       namespace: params.namespace,
     },
     spec: {
-      template: {
-        spec: {
-          generateType: 'join',
-          talosVersion: params.talosVersion,
-          hostname: {
-            source: 'InfrastructureName',
+      clusterName: params.clusterName,
+      replicas: params.workerGroups[name].count,
+      selector: {
+        matchLabels: null,
+      },
+      template: std.get(params.workerGroups[name], 'template', {}) {
+        metadata: {
+          labels+: {
+            'node-role.kubernetes.io/worker': '',
           },
-          strategicPatches: [
-            std.manifestJsonMinified(talosStrategicPatch),
-          ],
+        },
+        spec: {
+          clusterName: params.clusterName,
+          version: params.kubernetesVersion,
+          bootstrap: {
+            configRef: {
+              name: talosConfigTemplate.metadata.name,
+              apiGroup: 'bootstrap.cluster.x-k8s.io',
+              kind: 'TalosConfigTemplate',
+            },
+          },
+          infrastructureRef: {
+            name: cloudscaleMachineTemplate.metadata.name,
+            apiGroup: 'infrastructure.cluster.x-k8s.io',
+            kind: 'CloudscaleMachineTemplate',
+          },
         },
       },
     },
@@ -263,6 +252,30 @@ local capiWorkerGroup(name) =
       talosConfigTemplate,
     ],
   };
+
+local capiCluster = params.cluster {
+  apiVersion: 'cluster.x-k8s.io/v1beta2',
+  kind: 'Cluster',
+  metadata+: {
+    name: params.clusterName,
+    namespace: params.namespace,
+    labels+: {
+      [resourceSetLabelKey]: 'cloudscale',
+    },
+  },
+  spec+: {
+    infrastructureRef: {
+      apiGroup: 'infrastructure.cluster.x-k8s.io',
+      kind: 'CloudscaleCluster',
+      name: capiCloudscaleCluster.metadata.name,
+    },
+    controlPlaneRef: {
+      apiGroup: 'controlplane.cluster.x-k8s.io',
+      kind: 'TalosControlPlane',
+      name: capiTalosControlPlane.metadata.name,
+    },
+  },
+};
 
 {
   capi_cluster: [

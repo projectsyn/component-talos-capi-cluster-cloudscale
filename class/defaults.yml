@@ -52,4 +52,6 @@ parameters:
           # TODO(sg): figure out the real default name here.
           name: cloudscale-credentials
 
-    talosControlPlane: {}
+    talosControlPlane:
+      metadata: {}
+      spec: {}

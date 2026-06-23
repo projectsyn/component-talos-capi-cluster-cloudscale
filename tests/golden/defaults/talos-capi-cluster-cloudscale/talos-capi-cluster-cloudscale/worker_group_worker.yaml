@@ -9,23 +9,26 @@ spec:
   selector:
     matchLabels: null
   template:
+    metadata:
+      labels:
+        node-role.kubernetes.io/worker: ''
     spec:
       bootstrap:
         configRef:
           apiGroup: bootstrap.cluster.x-k8s.io
           kind: TalosConfigTemplate
-          name: worker
+          name: worker-0dd528d045332e9c
       clusterName: c-green-test-1234
       infrastructureRef:
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: CloudscaleMachineTemplate
-        name: worker
+        name: worker-cb7ea8521a7ab803
       version: 1.36.1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
 metadata:
-  name: worker
+  name: worker-cb7ea8521a7ab803
   namespace: syn-cluster-api
 spec:
   template:
@@ -41,7 +44,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: TalosConfigTemplate
 metadata:
-  name: worker
+  name: worker-0dd528d045332e9c
   namespace: syn-cluster-api
 spec:
   template:
