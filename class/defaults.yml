@@ -51,4 +51,6 @@ parameters:
         credentialsRef:
           name: capcs-cloudscale
 
-    talosControlPlane: {}
+    talosControlPlane:
+      metadata: {}
+      spec: {}
