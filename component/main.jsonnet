@@ -99,8 +99,8 @@ local talosStrategicPatch = {
   },
 };
 
-local capiTalosControlPlane = params.talosControlPlane {
-  apiVersion: 'controlplane.cluster.x-k8s.io/v1alpha3',
+local capiTalosControlPlane = {
+  apiVersion: 'controlplane.cluster.x-k8s.io/v1beta1',
   kind: 'TalosControlPlane',
   metadata+: std.get(params.talosControlPlane, 'metadata', {}) {
     name: params.clusterName,
@@ -108,10 +108,14 @@ local capiTalosControlPlane = params.talosControlPlane {
   },
   spec+: params.talosControlPlane.spec {
     version: params.kubernetesVersion,
-    infrastructureTemplate: {
-      apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
-      kind: 'CloudscaleMachineTemplate',
-      name: capiCloudscaleMachineTemplateControlPlane.metadata.name,
+    machineTemplate: {
+      spec: {
+        infrastructureRef: {
+          apiGroup: 'infrastructure.cluster.x-k8s.io',
+          kind: 'CloudscaleMachineTemplate',
+          name: capiCloudscaleMachineTemplateControlPlane.metadata.name,
+        },
+      },
     },
     controlPlaneConfig: {
       controlplane: {

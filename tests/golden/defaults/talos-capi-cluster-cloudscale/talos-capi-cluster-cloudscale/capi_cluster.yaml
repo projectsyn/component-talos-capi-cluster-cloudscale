@@ -52,7 +52,7 @@ spec:
       serverGroup:
         name: c-green-test-1234-control-plane
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: TalosControlPlane
 metadata:
   name: c-green-test-1234
@@ -66,10 +66,12 @@ spec:
       strategicPatches:
         - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda","image":"factory.talos.dev/openstack-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.4"},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
       talosVersion: 1.13.4
-  infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-    kind: CloudscaleMachineTemplate
-    name: c-green-test-1234-control-plane-e84c4ba30597bd6a
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: CloudscaleMachineTemplate
+        name: c-green-test-1234-control-plane-e84c4ba30597bd6a
   version: 1.36.1
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta2
