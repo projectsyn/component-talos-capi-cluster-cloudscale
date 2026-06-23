@@ -80,6 +80,22 @@ local talosStrategicPatch = {
     externalCloudProvider: {
       enabled: true,
     },
+    network: {
+      cni: {
+        // valid values: `flannel`, `custom`, `none`.
+        // `custom` uses custom manifests provided via `cni.urls`
+        // `none` indicates externally provisioned & managed CNI
+        // we currently assume that we'll always deploy custom CNIs via CAPI
+        // resourcesets.
+        [if params.cni != 'flannel' then 'name']: 'none',
+      },
+    },
+    proxy: {
+      disabled: if params.cni == 'cilium' then
+        inv.parameters.cilium.cilium_helm_values.kubeProxyReplacement == 'true'
+      else
+        std.trace('Not disabling kube-proxy for CNI %s' % params.cni, false),
+    },
   },
 };
 
@@ -277,15 +293,18 @@ local capiCluster = params.cluster {
   },
 };
 
-{
-  capi_cluster: [
-    capiCluster,
-    capiCloudscaleCluster,
-    capiCloudscaleMachineTemplateControlPlane,
-    capiTalosControlPlane,
-    capiClusterResourceSetBootstrap,
-  ],
-} + {
-  ['worker_group_%s' % wg.name]: wg.resources
-  for wg in com.generateResources(params.workerGroups, capiWorkerGroup)
-}
+if params.cni == 'cilium' && !std.member(inv.applications, 'cilium') then
+  error 'Component talos-capi-cluster-cloudscale expects that component-cilium is present when parameter cni=cilium'
+else
+  {
+    capi_cluster: [
+      capiCluster,
+      capiCloudscaleCluster,
+      capiCloudscaleMachineTemplateControlPlane,
+      capiTalosControlPlane,
+      capiClusterResourceSetBootstrap,
+    ],
+  } + {
+    ['worker_group_%s' % wg.name]: wg.resources
+    for wg in com.generateResources(params.workerGroups, capiWorkerGroup)
+  }

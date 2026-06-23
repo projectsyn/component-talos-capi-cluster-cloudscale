@@ -1,3 +1,7 @@
-# Overwrite parameters here
+applications:
+  - cilium
 
-# parameters: {...}
+parameters:
+  cilium:
+    cilium_helm_values:
+      kubeProxyReplacement: "true"
