@@ -107,6 +107,7 @@ local capiTalosControlPlane = {
     namespace: params.namespace,
   },
   spec+: params.talosControlPlane.spec {
+    replicas: params.controlPlane.count,
     version: params.kubernetesVersion,
     machineTemplate: {
       spec: {
