@@ -76,6 +76,9 @@ local talosStrategicPatch = {
     },
   },
   cluster: {
+    [if params.apiURL != '' then 'apiServer']: {
+      certSANs: [ params.apiURL ],
+    },
     // TODO(sg): document how to inject CCM manifests during bootstrap
     externalCloudProvider: {
       enabled: true,
