@@ -75,6 +75,7 @@ local talosStrategicPatch = {
       disk: '/dev/sda',
     },
   },
+  // TODO(sg): figure out if this section is really needed for worker groups.
   cluster: {
     [if params.apiURL != '' then 'apiServer']: {
       certSANs: [ params.apiURL ],
