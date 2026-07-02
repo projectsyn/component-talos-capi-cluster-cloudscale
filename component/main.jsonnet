@@ -85,6 +85,7 @@ local talosStrategicPatch = {
     },
     install: {
       disk: '/dev/sda',
+      wipe: true,
     },
   },
   // TODO(sg): figure out if this section is really needed for worker groups.
