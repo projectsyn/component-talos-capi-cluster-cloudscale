@@ -9,6 +9,18 @@ local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
 
 local resourceSetLabelKey = 'talos-capi-cluster-cloudscale.syn.tools/bootstrap';
 
+local kubernetesVersion =
+  local formatter =
+    if std.startsWith(params.kubernetesVersion, 'v') then
+      '%s'
+    else
+      std.trace(
+        "CAPI expects kubernetesVersion to be prefixed with 'v', adjusting %s"
+        % params.kubernetesVersion,
+        'v%s'
+      );
+  formatter % params.kubernetesVersion;
+
 // TODO(sg): figure out which resources need to have `nameWithHash()`
 local nameWithHash(name, spec, length=16) =
   '%s-%s' % [
@@ -112,7 +124,7 @@ local capiTalosControlPlane = {
   },
   spec+: params.talosControlPlane.spec {
     replicas: params.controlPlane.count,
-    version: params.kubernetesVersion,
+    version: kubernetesVersion,
     machineTemplate: {
       spec: {
         infrastructureRef: {
@@ -248,7 +260,7 @@ local capiWorkerGroup(name) =
         },
         spec: {
           clusterName: params.clusterName,
-          version: params.kubernetesVersion,
+          version: kubernetesVersion,
           bootstrap: {
             configRef: {
               name: talosConfigTemplate.metadata.name,

@@ -23,7 +23,7 @@ spec:
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: CloudscaleMachineTemplate
         name: worker-cb7ea8521a7ab803
-      version: 1.36.1
+      version: v1.36.1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
