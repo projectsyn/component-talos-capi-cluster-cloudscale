@@ -17,7 +17,7 @@ spec:
         configRef:
           apiGroup: bootstrap.cluster.x-k8s.io
           kind: TalosConfigTemplate
-          name: worker-95f76d53508bb41f
+          name: worker-d7863e308f443d77
       clusterName: c-green-test-1234
       infrastructureRef:
         apiGroup: infrastructure.cluster.x-k8s.io
@@ -44,7 +44,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: TalosConfigTemplate
 metadata:
-  name: worker-95f76d53508bb41f
+  name: worker-d7863e308f443d77
   namespace: syn-cluster-api
 spec:
   template:
@@ -53,5 +53,5 @@ spec:
       hostname:
         source: InfrastructureName
       strategicPatches:
-        - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda"},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
+        - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda","wipe":true},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
       talosVersion: 1.13.4
