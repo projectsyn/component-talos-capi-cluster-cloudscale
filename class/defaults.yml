@@ -11,7 +11,7 @@ parameters:
     talosVersion: '1.13.4'
     # NOTE(sg): this is the well-known default schematic UUID
     talosSchematicUUID: 376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
-    kubernetesVersion: '1.36.1'
+    kubernetesVersion: 'v1.36.1'
     apiURL: ""
 
     cni: cilium
