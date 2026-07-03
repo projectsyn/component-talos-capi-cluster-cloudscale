@@ -86,6 +86,11 @@ local talosStrategicPatch = {
     install: {
       disk: '/dev/sda',
       wipe: true,
+      // NOTE(sg): image is required by Tuppr in order to compute the update
+      image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
+        schematic_uuid: params.talosSchematicUUID,
+        version: params.talosVersion,
+      },
     },
   },
   // TODO(sg): figure out if this section is really needed for worker groups.
@@ -116,9 +121,12 @@ local talosStrategicPatch = {
   },
 };
 
+// TODO(sg): does order matter here?
 local strategicPatches = [
   std.manifestJsonMinified(patch)
   for patch in std.objectValues(params.talosStrategicPatches)
+] + [
+  std.manifestJsonMinified(talosStrategicPatch),
 ];
 
 local capiTalosControlPlane = {
@@ -150,20 +158,6 @@ local capiTalosControlPlane = {
           source: 'InfrastructureName',
         },
         strategicPatches: strategicPatches + [
-          std.manifestJsonMinified(talosStrategicPatch {
-            machine+: {
-              install+: {
-                // TODO(sg): do installers for custom schematic ids even exist?
-                // TODO(sg): figure out the new way to do this
-                // TODO(sg): do we even need this at all?
-                image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
-                  schematic_uuid: params.talosSchematicUUID,
-                  version: params.talosVersion,
-                },
-              },
-            },
-          }),
-        ] + [
           std.manifestJsonMinified(patch)
           for patch in std.objectValues(params.talosControlPlane.strategicPatches)
         ],
@@ -217,9 +211,7 @@ local capiWorkerGroup(name) =
           hostname: {
             source: 'InfrastructureName',
           },
-          strategicPatches: strategicPatches + [
-            std.manifestJsonMinified(talosStrategicPatch),
-          ],
+          strategicPatches: strategicPatches,
         },
       },
     },
