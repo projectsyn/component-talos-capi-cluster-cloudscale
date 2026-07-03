@@ -119,7 +119,7 @@ local talosStrategicPatch = {
 local capiTalosControlPlane = {
   apiVersion: 'controlplane.cluster.x-k8s.io/v1beta1',
   kind: 'TalosControlPlane',
-  metadata+: std.get(params.talosControlPlane, 'metadata', {}) {
+  metadata: std.get(params.talosControlPlane, 'metadata', {}) {
     name: params.clusterName,
     namespace: params.namespace,
   },
@@ -135,8 +135,8 @@ local capiTalosControlPlane = {
         },
       },
     },
-    controlPlaneConfig: {
-      controlplane: {
+    controlPlaneConfig+: {
+      controlplane+: {
         generateType: 'controlplane',
         talosVersion: params.talosVersion,
         hostname: {
@@ -150,6 +150,7 @@ local capiTalosControlPlane = {
               install+: {
                 // TODO(sg): do installers for custom schematic ids even exist?
                 // TODO(sg): figure out the new way to do this
+                // TODO(sg): do we even need this at all?
                 image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
                   schematic_uuid: params.talosSchematicUUID,
                   version: params.talosVersion,
@@ -157,6 +158,9 @@ local capiTalosControlPlane = {
               },
             },
           }),
+        ] + [
+          std.manifestJsonMinified(patch)
+          for patch in std.objectValues(params.talosControlPlane.strategicPatches)
         ],
       },
     },
