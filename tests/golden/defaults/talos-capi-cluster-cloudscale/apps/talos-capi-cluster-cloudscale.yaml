@@ -1,0 +1,9 @@
+spec:
+  ignoreDifferences:
+    - group: cluster.x-k8s.io
+      jsonPointers:
+        - /spec/replicas
+      kind: MachineDeployment
+  syncPolicy:
+    syncOptions:
+      - RespectIgnoreDifferences=true
