@@ -116,6 +116,11 @@ local talosStrategicPatch = {
   },
 };
 
+local strategicPatches = [
+  std.manifestJsonMinified(patch)
+  for patch in std.objectValues(params.talosStrategicPatches)
+];
+
 local capiTalosControlPlane = {
   apiVersion: 'controlplane.cluster.x-k8s.io/v1beta1',
   kind: 'TalosControlPlane',
@@ -144,7 +149,7 @@ local capiTalosControlPlane = {
           // provider.
           source: 'InfrastructureName',
         },
-        strategicPatches: [
+        strategicPatches: strategicPatches + [
           std.manifestJsonMinified(talosStrategicPatch {
             machine+: {
               install+: {
@@ -212,7 +217,7 @@ local capiWorkerGroup(name) =
           hostname: {
             source: 'InfrastructureName',
           },
-          strategicPatches: [
+          strategicPatches: strategicPatches + [
             std.manifestJsonMinified(talosStrategicPatch),
           ],
         },
