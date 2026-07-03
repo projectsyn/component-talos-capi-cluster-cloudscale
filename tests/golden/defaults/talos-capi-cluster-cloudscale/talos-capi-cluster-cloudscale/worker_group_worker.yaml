@@ -5,6 +5,8 @@ metadata:
   namespace: syn-cluster-api
 spec:
   clusterName: c-green-test-1234
+  deletion:
+    order: Oldest
   replicas: 1
   selector:
     matchLabels: null

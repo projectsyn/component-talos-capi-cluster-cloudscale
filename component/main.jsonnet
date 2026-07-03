@@ -241,6 +241,14 @@ local capiWorkerGroup(name) =
       },
     },
   };
+  local mdDeletionOrder =
+    local valOrDefault = std.get(params.workerGroups[name], 'deletionOrder', 'Oldest');
+    local validDeletionOrders = [ 'Newest', 'Oldest', 'Random' ];
+    assert
+      std.member(validDeletionOrders, valOrDefault)
+      : "Invalid value '%s' for deletion order for machinedeployment '%s': " % [ valOrDefault, name ]
+        + 'valid options are %s' % validDeletionOrders;
+    valOrDefault;
   local machineDeployment = {
     apiVersion: 'cluster.x-k8s.io/v1beta2',
     kind: 'MachineDeployment',
@@ -251,6 +259,10 @@ local capiWorkerGroup(name) =
     spec: {
       clusterName: params.clusterName,
       replicas: params.workerGroups[name].count,
+      deletion: {
+        // TODO(sg): decide how we want to expose useful config options.
+        order: std.get(params.workerGroups[name], 'deletionOrder', 'Oldest'),
+      },
       selector: {
         matchLabels: null,
       },
