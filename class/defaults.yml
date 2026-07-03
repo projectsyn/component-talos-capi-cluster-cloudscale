@@ -58,3 +58,4 @@ parameters:
     talosControlPlane:
       metadata: {}
       spec: {}
+      strategicPatches: {}
