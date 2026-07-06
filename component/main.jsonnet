@@ -5,6 +5,19 @@ local kube = import 'lib/kube.libjsonnet';
 local inv = kap.inventory();
 local params = inv.parameters.talos_capi_cluster_cloudscale;
 
+local validateTalosVersion(tver) =
+  local parts = std.split(tver, '.');
+  assert std.length(parts) == 2 : 'Expected Talos version to contain exacty 1 dot';
+  local major = std.parseJson(parts[0]);
+  local minor = std.parseJson(parts[1]);
+  if !std.isInteger(major) || !std.isInteger(minor) then
+    error "Expected Talos version to be '<major>.<minor>', got '%s'" % tver
+  else
+    {
+      major: major,
+      minor: minor,
+    };
+
 local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
 
 local resourceSetLabelKey = 'talos-capi-cluster-cloudscale.syn.tools/bootstrap';
@@ -89,7 +102,8 @@ local talosStrategicPatch = {
       // NOTE(sg): image is required by Tuppr in order to compute the update
       image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
         schematic_uuid: params.talosSchematicUUID,
-        version: params.talosVersion,
+        version:
+          '%(major)s.%(minor)s.0' % validateTalosVersion(params.talosVersion),
       },
     },
   },
@@ -151,7 +165,7 @@ local capiTalosControlPlane = {
     controlPlaneConfig+: {
       controlplane+: {
         generateType: 'controlplane',
-        talosVersion: params.talosVersion,
+        talosVersion: '%(major)s.%(minor)s' % validateTalosVersion(params.talosVersion),
         hostname: {
           // we want to use the VM name defined by the cloudscale CAPI
           // provider.
@@ -207,7 +221,7 @@ local capiWorkerGroup(name) =
       template: {
         spec: {
           generateType: 'join',
-          talosVersion: params.talosVersion,
+          talosVersion: '%(major)s.%(minor)s' % validateTalosVersion(params.talosVersion),
           hostname: {
             source: 'InfrastructureName',
           },

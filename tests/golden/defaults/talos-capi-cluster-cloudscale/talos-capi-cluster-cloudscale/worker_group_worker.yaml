@@ -19,24 +19,24 @@ spec:
         configRef:
           apiGroup: bootstrap.cluster.x-k8s.io
           kind: TalosConfigTemplate
-          name: worker-e7cba96fd5f9ccbc
+          name: worker-b49f8b43afa7f968
       clusterName: c-green-test-1234
       infrastructureRef:
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: CloudscaleMachineTemplate
-        name: worker-cb7ea8521a7ab803
+        name: worker-140736b57cf90932
       version: v1.36.1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
 metadata:
-  name: worker-cb7ea8521a7ab803
+  name: worker-140736b57cf90932
   namespace: syn-cluster-api
 spec:
   template:
     spec:
       flavor: plus-16-4
-      image: custom:talos-v1.13.4-37656798
+      image: custom:talos-v1.13-37656798
       interfaces:
         - network: privnet-c-green-test-1234
       rootVolumeSize: 50
@@ -46,7 +46,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: TalosConfigTemplate
 metadata:
-  name: worker-e7cba96fd5f9ccbc
+  name: worker-b49f8b43afa7f968
   namespace: syn-cluster-api
 spec:
   template:
@@ -55,5 +55,5 @@ spec:
       hostname:
         source: InfrastructureName
       strategicPatches:
-        - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda","image":"factory.talos.dev/openstack-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.4","wipe":true},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
-      talosVersion: 1.13.4
+        - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda","image":"factory.talos.dev/openstack-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.0","wipe":true},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
+      talosVersion: '1.13'

@@ -8,7 +8,11 @@ parameters:
     clusterName: ${cluster:name}
 
     # TODO(sg): how will updates work with CAPI?
-    talosVersion: '1.13.4'
+    # IMPORTANT: this is only used for ensuring CAPI renders a suitable
+    # MachineConfig and isn't used to define the cluster's actual Talos
+    # version (at least when using the OpenStack raw image from the image
+    # factory).
+    talosVersion: '1.13'
     # NOTE(sg): this is the well-known default schematic UUID
     talosSchematicUUID: 376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
     kubernetesVersion: 'v1.36.1'
