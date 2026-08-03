@@ -65,3 +65,6 @@ parameters:
       strategicPatches: {}
 
     talosStrategicPatches: {}
+
+    kubernetesApiServer:
+      authenticationConfigurationJWT: {}
