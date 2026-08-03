@@ -143,6 +143,17 @@ local strategicPatches = [
   std.manifestJsonMinified(talosStrategicPatch),
 ];
 
+local authenticationConfiguration = {
+  apiVersion: 'apiserver.config.k8s.io/v1',
+  kind: 'AuthenticationConfiguration',
+  jwt: std.filter(
+    function(it) it != null,
+    std.objectValues(params.kubernetesApiServer.authenticationConfigurationJWT)
+  ),
+  //TODO(sg): do we want to allow configuring other top-level fields? are
+  //there even any other top-level fields?
+};
+
 local capiTalosControlPlane = {
   apiVersion: 'controlplane.cluster.x-k8s.io/v1beta1',
   kind: 'TalosControlPlane',
@@ -174,7 +185,37 @@ local capiTalosControlPlane = {
         strategicPatches: strategicPatches + [
           std.manifestJsonMinified(patch)
           for patch in std.objectValues(params.talosControlPlane.strategicPatches)
-        ],
+        ] + if std.length(authenticationConfiguration.jwt) > 0 then
+          local filedir = '/var/config/kubernetes/kube-apiserver';
+          local filepath = '%s/syn-authentication-configuration.yaml' % filedir;
+          [
+            std.manifestJsonMinified({
+              machine: {
+                files: [
+                  {
+                    content: std.manifestYamlDoc(authenticationConfiguration),
+                    permissions: std.parseOctal('0644'),
+                    path: filepath,
+                    op: 'create',
+                  },
+                ],
+              },
+              cluster: {
+                apiServer: {
+                  extraArgs: {
+                    'authentication-config': filepath,
+                  },
+                  extraVolumes: [
+                    {
+                      hostPath: filedir,
+                      mountPath: filedir,
+                      readonly: true,
+                    },
+                  ],
+                },
+              },
+            }),
+          ] else [],
       },
     },
   },
