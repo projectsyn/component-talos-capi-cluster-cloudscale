@@ -15,6 +15,7 @@ local app = argocd.App('talos-capi-cluster-cloudscale', params.namespace) {
     syncPolicy+: {
       syncOptions+: [
         'RespectIgnoreDifferences=true',
+        'ServerSideApply=true',
       ],
     },
   },
