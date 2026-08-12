@@ -8,8 +8,6 @@ spec:
   deletion:
     order: Oldest
   replicas: 1
-  selector:
-    matchLabels: null
   template:
     metadata:
       labels:

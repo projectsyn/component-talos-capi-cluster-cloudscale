@@ -318,9 +318,6 @@ local capiWorkerGroup(name) =
         // TODO(sg): decide how we want to expose useful config options.
         order: std.get(params.workerGroups[name], 'deletionOrder', 'Oldest'),
       },
-      selector: {
-        matchLabels: null,
-      },
       template: std.get(params.workerGroups[name], 'template', {}) {
         metadata: {
           labels+: {
