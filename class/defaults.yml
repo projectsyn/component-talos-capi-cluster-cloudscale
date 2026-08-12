@@ -68,3 +68,16 @@ parameters:
 
     kubernetesApiServer:
       authenticationConfigurationJWT: {}
+
+    ## Temporary config for user kubeconfig service
+    images:
+      caddy:
+        registry: docker.io
+        repository: caddy/caddy
+        tag: 2.11.4-alpine
+    kubeconfig:
+      serverURL: ""
+      ingressAnnotations: {}
+      oidc:
+        issuerURL: ""
+        clientId: ""
