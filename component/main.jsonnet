@@ -106,6 +106,14 @@ local talosStrategicPatch = {
           '%(major)s.%(minor)s.0' % validateTalosVersion(params.talosVersion),
       },
     },
+    kubelet: {
+      extraArgs: {
+        // NOTE(sg): required for metrics-server, but requires a mechanism to
+        // approve Kubelet CSRs. We currently use
+        // https://github.com/alex1989hu/kubelet-serving-cert-approver
+        'rotate-server-certificates': true,
+      },
+    },
   },
   // TODO(sg): figure out if this section is really needed for worker groups.
   cluster: {
