@@ -1,0 +1,92 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  labels:
+    talos-capi-cluster-cloudscale.syn.tools/bootstrap: cloudscale
+  name: c-green-test-1234
+  namespace: syn-cluster-api
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 10.128.0.0/14
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+        - 172.30.0.0/16
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: TalosControlPlane
+    name: c-green-test-1234
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: CloudscaleCluster
+    name: c-green-test-1234
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudscaleCluster
+metadata:
+  name: c-green-test-1234
+  namespace: syn-cluster-api
+spec:
+  credentialsRef:
+    name: cloudscale-credentials
+  networks:
+    - name: privnet-c-green-test-1234
+      uuid: TO_BE_REPLACED
+  region: rma1
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudscaleMachineTemplate
+metadata:
+  name: c-green-test-1234-control-plane-1a05392e618ad8f5
+  namespace: syn-cluster-api
+spec:
+  template:
+    spec:
+      flavor: plus-16-4
+      image: custom:talos-v1.13-37656798
+      interfaces:
+        - network: privnet-c-green-test-1234
+      rootVolumeSize: 50
+      serverGroup:
+        name: c-green-test-1234-control-plane
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: TalosControlPlane
+metadata:
+  name: c-green-test-1234
+  namespace: syn-cluster-api
+spec:
+  controlPlaneConfig:
+    controlplane:
+      generateType: controlplane
+      hostname:
+        source: InfrastructureName
+      strategicPatches:
+        - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda","image":"factory.talos.dev/openstack-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.0","wipe":true},"kubelet":{"extraArgs":{"rotate-server-certificates":true}},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
+      talosVersion: '1.13'
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: CloudscaleMachineTemplate
+        name: c-green-test-1234-control-plane-1a05392e618ad8f5
+  replicas: 1
+  version: v1.36.1
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta2
+kind: ClusterResourceSet
+metadata:
+  name: cloudscale-bootstrap-c-green-test-1234
+  namespace: syn-cluster-api
+spec:
+  clusterSelector:
+    matchLabels:
+      talos-capi-cluster-cloudscale.syn.tools/bootstrap: cloudscale
+  resources:
+    - kind: ConfigMap
+      name: c-green-test-1234-ccm
+    - kind: ConfigMap
+      name: c-green-test-1234-cilium
+  strategy: ApplyOnce

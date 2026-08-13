@@ -1,0 +1,57 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: worker
+  namespace: syn-cluster-api
+spec:
+  clusterName: c-green-test-1234
+  deletion:
+    order: Oldest
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        node-role.kubernetes.io/worker: ''
+    spec:
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: TalosConfigTemplate
+          name: worker-596c13fcc77c1a6b
+      clusterName: c-green-test-1234
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: CloudscaleMachineTemplate
+        name: worker-140736b57cf90932
+      version: v1.36.1
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudscaleMachineTemplate
+metadata:
+  name: worker-140736b57cf90932
+  namespace: syn-cluster-api
+spec:
+  template:
+    spec:
+      flavor: plus-16-4
+      image: custom:talos-v1.13-37656798
+      interfaces:
+        - network: privnet-c-green-test-1234
+      rootVolumeSize: 50
+      serverGroup:
+        name: worker
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: TalosConfigTemplate
+metadata:
+  name: worker-596c13fcc77c1a6b
+  namespace: syn-cluster-api
+spec:
+  template:
+    spec:
+      generateType: join
+      hostname:
+        source: InfrastructureName
+      strategicPatches:
+        - '{"cluster":{"externalCloudProvider":{"enabled":true},"network":{"cni":{"name":"none"}},"proxy":{"disabled":true}},"machine":{"install":{"disk":"/dev/sda","image":"factory.talos.dev/openstack-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.0","wipe":true},"kubelet":{"extraArgs":{"rotate-server-certificates":true}},"network":{"interfaces":[{"deviceSelector":{"physical":true},"dhcp":true}]}}}'
+      talosVersion: '1.13'

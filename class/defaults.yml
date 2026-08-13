@@ -1,5 +1,70 @@
 parameters:
   talos_capi_cluster_cloudscale:
     =_metadata:
+      multi_instance: true
       multi_tenant: true
-    namespace: syn-talos-capi-cluster-cloudscale
+    namespace: syn-cluster-api
+
+    clusterName: ${cluster:name}
+
+    # TODO(sg): how will updates work with CAPI?
+    # IMPORTANT: this is only used for ensuring CAPI renders a suitable
+    # MachineConfig and isn't used to define the cluster's actual Talos
+    # version (at least when using the OpenStack raw image from the image
+    # factory).
+    talosVersion: '1.13'
+    # NOTE(sg): this is the well-known default schematic UUID
+    talosSchematicUUID: 376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    kubernetesVersion: 'v1.36.1'
+    apiURL: ""
+
+    cni: cilium
+
+    cloudscale:
+      # TODO(sg): document this
+      customImageSlug: talos-v${talos_capi_cluster_cloudscale:talosVersion}-37656798
+      # TODO(sg): decide on default sizing
+      privateNetwork:
+        # TODO(sg): does this need to match the privnet name on cloudscale?
+        name: privnet-${talos_capi_cluster_cloudscale:clusterName}
+        uuid: TO_BE_REPLACED
+      region: ${facts:region}
+
+    controlPlane:
+      count: 1
+      flavor: plus-16-4
+      rootVolumeSize: 50
+
+    workerGroups:
+      worker:
+        count: 1
+        flavor: plus-16-4
+        rootVolumeSize: 50
+
+    cluster:
+      spec:
+        clusterNetwork:
+          pods:
+            cidrBlocks:
+              - 10.128.0.0/14
+          services:
+            cidrBlocks:
+              - 172.30.0.0/16
+          serviceDomain: cluster.local
+
+    cloudscaleCluster:
+      spec:
+        region: ${talos_capi_cluster_cloudscale:cloudscale:region}
+        credentialsRef:
+          # TODO(sg): figure out the real default name here.
+          name: cloudscale-credentials
+
+    talosControlPlane:
+      metadata: {}
+      spec: {}
+      strategicPatches: {}
+
+    talosStrategicPatches: {}
+
+    kubernetesApiServer:
+      authenticationConfigurationJWT: {}
