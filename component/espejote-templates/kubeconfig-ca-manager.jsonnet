@@ -8,6 +8,10 @@ local kubeconfig =
   assert std.objectHas(kcs[0].data, 'value') : 'Expected kubeconfig secret to have field `value`';
   std.parseYaml(std.base64Decode(kcs[0].data.value));
 
+local cluster_ca = std.base64Decode(
+  kubeconfig.clusters[0].cluster['certificate-authority-data']
+);
+
 local user_kubeconfig =
   local contextName = 'oidc@%s' % kubeconfig.clusters[0].name;
   {
@@ -88,6 +92,7 @@ local confighash = std.sha256(
       // manifestYamlDoc doesn't add a trailing newline, so we do it
       // ourselves.
       kubeconfig: std.manifestYamlDoc(user_kubeconfig, quote_keys=false) + '\n',
+      'cluster-ca.crt': cluster_ca,
       'index.html': index_html,
       'caddy.json': caddy_json,
     },
