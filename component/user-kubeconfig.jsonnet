@@ -250,6 +250,7 @@ local caddy_deployment = kube.Deployment(caddyResourceName) {
             securityContext: {
               allowPrivilegeEscalation: false,
               capabilities: {
+                add: [ 'NET_BIND_SERVICE' ],
                 drop: [ 'ALL' ],
               },
               seccompProfile: {
