@@ -2,7 +2,6 @@ apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: worker
-  namespace: syn-cluster-api
 spec:
   clusterName: c-green-test-1234
   deletion:
@@ -29,7 +28,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
 metadata:
   name: worker-140736b57cf90932
-  namespace: syn-cluster-api
 spec:
   template:
     spec:
@@ -45,7 +43,6 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: TalosConfigTemplate
 metadata:
   name: worker-596c13fcc77c1a6b
-  namespace: syn-cluster-api
 spec:
   template:
     spec:

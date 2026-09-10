@@ -4,7 +4,6 @@ metadata:
   labels:
     talos-capi-cluster-cloudscale.syn.tools/bootstrap: cloudscale
   name: c-green-test-1234
-  namespace: syn-cluster-api
 spec:
   clusterNetwork:
     pods:
@@ -27,7 +26,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleCluster
 metadata:
   name: c-green-test-1234
-  namespace: syn-cluster-api
 spec:
   credentialsRef:
     name: capcs-cloudscale
@@ -40,7 +38,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
 metadata:
   name: c-green-test-1234-control-plane-1a05392e618ad8f5
-  namespace: syn-cluster-api
 spec:
   template:
     spec:
@@ -56,7 +53,6 @@ apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: TalosControlPlane
 metadata:
   name: c-green-test-1234
-  namespace: syn-cluster-api
 spec:
   controlPlaneConfig:
     controlplane:
@@ -79,7 +75,6 @@ apiVersion: addons.cluster.x-k8s.io/v1beta2
 kind: ClusterResourceSet
 metadata:
   name: cloudscale-bootstrap-c-green-test-1234
-  namespace: syn-cluster-api
 spec:
   clusterSelector:
     matchLabels:
