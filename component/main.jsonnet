@@ -2,6 +2,10 @@ local com = import 'lib/commodore.libjsonnet';
 local kap = import 'lib/kapitan.libjsonnet';
 local kube = import 'lib/kube.libjsonnet';
 
+local capi = import 'lib/capi-core.libsonnet';
+local capcs = import 'lib/capi-provider-cloudscale.libsonnet';
+local capi_talos = import 'lib/capi-provider-talos.libsonnet';
+
 local inv = kap.inventory();
 local params = inv.parameters.talos_capi_cluster_cloudscale;
 
@@ -41,13 +45,14 @@ local nameWithHash(name, spec, length=16) =
     std.sha256(std.manifestJsonMinified(spec))[:length],
   ];
 
-local capiCloudscaleCluster = {
-  apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
-  kind: 'CloudscaleCluster',
-  metadata+: std.get(params.cloudscaleCluster, 'metadata', {}) {
-    name: params.clusterName,
-    namespace: params.namespace,
-  },
+local filteredMetadata(meta) = {
+  [k]: meta[k]
+  for k in std.objectFields(meta)
+  if !std.member([ 'name', 'namespace' ], k)
+};
+
+local capiCloudscaleCluster = capcs.CloudscaleCluster(params.clusterName) {
+  metadata+: filteredMetadata(std.get(params.cloudscaleCluster, 'metadata', {})),
   spec+: params.cloudscaleCluster.spec {
     networks: [
       {
@@ -58,12 +63,9 @@ local capiCloudscaleCluster = {
   },
 };
 
-local capiCloudscaleMachineTemplateControlPlane = {
-  apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
-  kind: 'CloudscaleMachineTemplate',
+local capiCloudscaleMachineTemplateControlPlane = capcs.CloudscaleMachineTemplate(params.clusterName) {
   metadata+: {
     name: nameWithHash('%s-control-plane' % params.clusterName, $.spec),
-    namespace: params.namespace,
   },
   spec: {
     template: {
@@ -162,21 +164,16 @@ local authenticationConfiguration = {
   //there even any other top-level fields?
 };
 
-local capiTalosControlPlane = {
-  apiVersion: 'controlplane.cluster.x-k8s.io/v1beta1',
-  kind: 'TalosControlPlane',
-  metadata: std.get(params.talosControlPlane, 'metadata', {}) {
-    name: params.clusterName,
-    namespace: params.namespace,
-  },
+local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
+  metadata+: filteredMetadata(std.get(params.talosControlPlane, 'metadata', {})),
   spec+: params.talosControlPlane.spec {
     replicas: params.controlPlane.count,
     version: kubernetesVersion,
     machineTemplate: {
       spec: {
         infrastructureRef: {
-          apiGroup: 'infrastructure.cluster.x-k8s.io',
-          kind: 'CloudscaleMachineTemplate',
+          apiGroup: capcs.apiGroup,
+          kind: capiCloudscaleMachineTemplateControlPlane.kind,
           name: capiCloudscaleMachineTemplateControlPlane.metadata.name,
         },
       },
@@ -230,13 +227,9 @@ local capiTalosControlPlane = {
 };
 
 // NOTE(sg): figure out if this is even needed after initial bootstrap
-local capiClusterResourceSetBootstrap = {
-  apiVersion: 'addons.cluster.x-k8s.io/v1beta2',
-  kind: 'ClusterResourceSet',
-  metadata: {
-    name: 'cloudscale-bootstrap-%s' % params.clusterName,
-    namespace: params.namespace,
-  },
+local capiClusterResourceSetBootstrap = capi.ClusterResourceSet(
+  'cloudscale-bootstrap-%s' % params.clusterName
+) {
   spec: {
     strategy: 'ApplyOnce',
     clusterSelector: {
@@ -259,12 +252,9 @@ local capiClusterResourceSetBootstrap = {
 };
 
 local capiWorkerGroup(name) =
-  local talosConfigTemplate = {
-    apiVersion: 'bootstrap.cluster.x-k8s.io/v1alpha3',
-    kind: 'TalosConfigTemplate',
-    metadata: {
+  local talosConfigTemplate = capi_talos.TalosConfigTemplate(name) {
+    metadata+: {
       name: nameWithHash(name, $.spec),
-      namespace: params.namespace,
     },
     spec: {
       template: {
@@ -279,12 +269,9 @@ local capiWorkerGroup(name) =
       },
     },
   };
-  local cloudscaleMachineTemplate = {
-    apiVersion: 'infrastructure.cluster.x-k8s.io/v1beta2',
-    kind: 'CloudscaleMachineTemplate',
-    metadata: {
+  local cloudscaleMachineTemplate = capcs.CloudscaleMachineTemplate(name) {
+    metadata+: {
       name: nameWithHash(name, $.spec),
-      namespace: params.namespace,
     },
     spec: {
       template: {
@@ -312,13 +299,7 @@ local capiWorkerGroup(name) =
       : "Invalid value '%s' for deletion order for machinedeployment '%s': " % [ valOrDefault, name ]
         + 'valid options are %s' % validDeletionOrders;
     valOrDefault;
-  local machineDeployment = {
-    apiVersion: 'cluster.x-k8s.io/v1beta2',
-    kind: 'MachineDeployment',
-    metadata: {
-      name: name,
-      namespace: params.namespace,
-    },
+  local machineDeployment = capi.MachineDeployment(name) {
     spec: {
       clusterName: params.clusterName,
       replicas: params.workerGroups[name].count,
@@ -337,15 +318,15 @@ local capiWorkerGroup(name) =
           version: kubernetesVersion,
           bootstrap: {
             configRef: {
+              apiGroup: capi_talos.bootstrapApiGroup,
+              kind: talosConfigTemplate.kind,
               name: talosConfigTemplate.metadata.name,
-              apiGroup: 'bootstrap.cluster.x-k8s.io',
-              kind: 'TalosConfigTemplate',
             },
           },
           infrastructureRef: {
+            apiGroup: capcs.apiGroup,
+            kind: cloudscaleMachineTemplate.kind,
             name: cloudscaleMachineTemplate.metadata.name,
-            apiGroup: 'infrastructure.cluster.x-k8s.io',
-            kind: 'CloudscaleMachineTemplate',
           },
         },
       },
@@ -364,25 +345,21 @@ local capiWorkerGroup(name) =
     ],
   };
 
-local capiCluster = params.cluster {
-  apiVersion: 'cluster.x-k8s.io/v1beta2',
-  kind: 'Cluster',
-  metadata+: {
-    name: params.clusterName,
-    namespace: params.namespace,
+local capiCluster = capi.Cluster(params.clusterName) {
+  metadata+: filteredMetadata(std.get(params.cluster, 'metadata', {})) {
     labels+: {
       [resourceSetLabelKey]: 'cloudscale',
     },
   },
-  spec+: {
+  spec+: std.get(params.cluster, 'spec', {}) {
     infrastructureRef: {
-      apiGroup: 'infrastructure.cluster.x-k8s.io',
-      kind: 'CloudscaleCluster',
+      apiGroup: capcs.apiGroup,
+      kind: capiCloudscaleCluster.kind,
       name: capiCloudscaleCluster.metadata.name,
     },
     controlPlaneRef: {
-      apiGroup: 'controlplane.cluster.x-k8s.io',
-      kind: 'TalosControlPlane',
+      apiGroup: capi_talos.controlPlaneApiGroup,
+      kind: capiTalosControlPlane.kind,
       name: capiTalosControlPlane.metadata.name,
     },
   },
