@@ -6,6 +6,8 @@ local capi = import 'lib/capi-core.libsonnet';
 local capcs = import 'lib/capi-provider-cloudscale.libsonnet';
 local capi_talos = import 'lib/capi-provider-talos.libsonnet';
 
+local utils = import 'utils.libsonnet';
+
 local inv = kap.inventory();
 local params = inv.parameters.talos_capi_cluster_cloudscale;
 
@@ -15,20 +17,6 @@ assert
   && std.member(inv.applications, 'capi-provider-talos')
   : '\n\nComponent talos-capi-cluster-cloudscale requires components '
     + 'capi-core, capi-provider-cloudscale, and capi-provider-talos';
-
-
-local validateTalosVersion(tver) =
-  local parts = std.split(tver, '.');
-  assert std.length(parts) == 2 : 'Expected Talos version to contain exacty 1 dot';
-  local major = std.parseJson(parts[0]);
-  local minor = std.parseJson(parts[1]);
-  if !std.isInteger(major) || !std.isInteger(minor) then
-    error "Expected Talos version to be '<major>.<minor>', got '%s'" % tver
-  else
-    {
-      major: major,
-      minor: minor,
-    };
 
 local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
 
@@ -113,7 +101,7 @@ local talosStrategicPatch = {
       image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
         schematic_uuid: params.talosSchematicUUID,
         version:
-          '%(major)s.%(minor)s.0' % validateTalosVersion(params.talosVersion),
+          '%(major)s.%(minor)s.0' % utils.validateTalosVersion(params.talosVersion),
       },
     },
     kubelet: {
@@ -259,7 +247,7 @@ local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
     controlPlaneConfig+: {
       controlplane+: {
         generateType: 'controlplane',
-        talosVersion: '%(major)s.%(minor)s' % validateTalosVersion(params.talosVersion),
+        talosVersion: '%(major)s.%(minor)s' % utils.validateTalosVersion(params.talosVersion),
         hostname: {
           // we want to use the VM name defined by the cloudscale CAPI
           // provider.
@@ -280,7 +268,7 @@ local capiWorkerGroup(name) =
       template: {
         spec: {
           generateType: 'join',
-          talosVersion: '%(major)s.%(minor)s' % validateTalosVersion(params.talosVersion),
+          talosVersion: '%(major)s.%(minor)s' % utils.validateTalosVersion(params.talosVersion),
           hostname: {
             source: 'InfrastructureName',
           },
