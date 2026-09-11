@@ -3,7 +3,23 @@ local inv = kap.inventory();
 local params = inv.parameters.talos_capi_cluster_cloudscale;
 local argocd = import 'lib/argocd.libjsonnet';
 
-local app = argocd.App('talos-capi-cluster-cloudscale', params.namespace);
+local app = argocd.App('talos-capi-cluster-cloudscale', params.namespace) {
+  spec+: {
+    ignoreDifferences+: [
+      {
+        group: 'cluster.x-k8s.io',
+        kind: 'MachineDeployment',
+        jsonPointers: [ '/spec/replicas' ],
+      },
+    ],
+    syncPolicy+: {
+      syncOptions+: [
+        'RespectIgnoreDifferences=true',
+        'ServerSideApply=true',
+      ],
+    },
+  },
+};
 
 local appPath =
   local project = std.get(std.get(app, 'spec', {}), 'project', 'syn');
