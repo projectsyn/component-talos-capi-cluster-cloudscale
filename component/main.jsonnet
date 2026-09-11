@@ -197,10 +197,33 @@ local authenticationPatch =
       }),
     ] else [];
 
+// NOTE(sg): kubernetesTalosAPIAccess can only be configured on control plane
+// nodes, worker provisioning fails with the following error if
+// kubernetesTalosAPIAccess is present in the machine configuration:
+//
+// failed to validate config acquired via platform openstack: 1 error occurred:
+//  * v1alpha1.Config: 1 error occurred:
+//    * feature Kubernetes Talos API Access can only be enabled on control plane machines
+local tupprAccessPatch = {
+  machine: {
+    features: {
+      kubernetesTalosAPIAccess: {
+        enabled: true,
+        allowedKubernetesNamespaces: [
+          'syn-tuppr',
+        ],
+        allowedRoles: [ 'os:admin' ],
+      },
+    },
+  },
+};
+
 local controlPlaneStrategicPatches = [
   std.manifestJsonMinified(patch)
   for patch in std.objectValues(params.talosControlPlane.strategicPatches)
-] + authenticationPatch;
+] + authenticationPatch + [
+  std.manifestJsonMinified(tupprAccessPatch),
+];
 
 local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
   metadata+: filteredMetadata(std.get(params.talosControlPlane, 'metadata', {})),
