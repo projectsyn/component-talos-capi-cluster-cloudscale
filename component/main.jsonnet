@@ -164,6 +164,44 @@ local authenticationConfiguration = {
   //there even any other top-level fields?
 };
 
+local authenticationPatch =
+  if std.length(authenticationConfiguration.jwt) > 0 then
+    local filedir = '/var/config/kubernetes/kube-apiserver';
+    local filepath = '%s/syn-authentication-configuration.yaml' % filedir;
+    [
+      std.manifestJsonMinified({
+        machine: {
+          files: [
+            {
+              content: std.manifestYamlDoc(authenticationConfiguration),
+              permissions: std.parseOctal('0644'),
+              path: filepath,
+              op: 'create',
+            },
+          ],
+        },
+        cluster: {
+          apiServer: {
+            extraArgs: {
+              'authentication-config': filepath,
+            },
+            extraVolumes: [
+              {
+                hostPath: filedir,
+                mountPath: filedir,
+                readonly: true,
+              },
+            ],
+          },
+        },
+      }),
+    ] else [];
+
+local controlPlaneStrategicPatches = [
+  std.manifestJsonMinified(patch)
+  for patch in std.objectValues(params.talosControlPlane.strategicPatches)
+] + authenticationPatch;
+
 local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
   metadata+: filteredMetadata(std.get(params.talosControlPlane, 'metadata', {})),
   spec+: params.talosControlPlane.spec {
@@ -187,40 +225,7 @@ local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
           // provider.
           source: 'InfrastructureName',
         },
-        strategicPatches: strategicPatches + [
-          std.manifestJsonMinified(patch)
-          for patch in std.objectValues(params.talosControlPlane.strategicPatches)
-        ] + if std.length(authenticationConfiguration.jwt) > 0 then
-          local filedir = '/var/config/kubernetes/kube-apiserver';
-          local filepath = '%s/syn-authentication-configuration.yaml' % filedir;
-          [
-            std.manifestJsonMinified({
-              machine: {
-                files: [
-                  {
-                    content: std.manifestYamlDoc(authenticationConfiguration),
-                    permissions: std.parseOctal('0644'),
-                    path: filepath,
-                    op: 'create',
-                  },
-                ],
-              },
-              cluster: {
-                apiServer: {
-                  extraArgs: {
-                    'authentication-config': filepath,
-                  },
-                  extraVolumes: [
-                    {
-                      hostPath: filedir,
-                      mountPath: filedir,
-                      readonly: true,
-                    },
-                  ],
-                },
-              },
-            }),
-          ] else [],
+        strategicPatches: strategicPatches + controlPlaneStrategicPatches,
       },
     },
   },
