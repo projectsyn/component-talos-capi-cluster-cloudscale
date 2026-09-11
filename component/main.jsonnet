@@ -97,7 +97,9 @@ local talosStrategicPatch = {
     install: {
       disk: '/dev/sda',
       wipe: true,
-      // NOTE(sg): image is required by Tuppr in order to compute the update
+      // NOTE(sg): image is required by Tuppr in order to compute the update.
+      // We don't use the user-supplied patch version here, so that pure patch
+      // upgrades (without new Talos base image) don't create new machines.
       image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
         schematic_uuid: params.talosSchematicUUID,
         version:
