@@ -9,3 +9,18 @@ The component expects that the following Cluster API components are available on
 * https://hub.syn.tools/capi-provider-talos[component-capi-provider-talos]
 
 See the xref:references/parameters.adoc[parameters] reference for further details.
+
+== Talos upgrades with Tuppr
+
+The component optionally renders a Tuppr `TalosUpgrade` for the cluster if https://hub.syn.tools/tuppr[component-tuppr] is available on the target cluster.
+
+[WARNING]
+====
+We recommend that users don't perform Talos minor upgrades via Tuppr.
+
+Instead, please see the https://kb.vshn.ch/talos/how-tos/minor-upgrade.html[VSHN Managed Talos Minor Upgrade how-to] for a supported minor upgrade process which works with this component.
+====
+
+== Talos API access
+
+The component configures Talos API access for Tuppr by applying an appropriate `MachineConfiguration` patch to the Talos control plane nodes.

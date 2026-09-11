@@ -3,6 +3,7 @@ applications:
   - capi-core
   - capi-provider-cloudscale
   - capi-provider-talos
+  - tuppr
 
 parameters:
   kapitan:
@@ -16,6 +17,9 @@ parameters:
       - type: https
         source: https://raw.githubusercontent.com/projectsyn/component-capi-provider-talos/master/lib/capi-provider-talos.libsonnet
         output_path: vendor/lib/capi-provider-talos.libsonnet
+      - type: https
+        source: https://raw.githubusercontent.com/projectsyn/component-tuppr/master/lib/tuppr.libsonnet
+        output_path: vendor/lib/tuppr.libsonnet
 
   cilium:
     cilium_helm_values:

@@ -1,0 +1,29 @@
+apiVersion: tuppr.home-operations.com/v1alpha1
+kind: TalosUpgrade
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: '10'
+  name: cluster
+spec:
+  drain:
+    enabled: true
+  healthChecks:
+    - apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      expr: |
+        status.conditions.exists(
+          c, c.type == "EtcdClusterHealthyCondition" && c.status == "True"
+        ) && status.conditions.exists(
+          c, c.type == "ControlPlaneComponentsHealthy" && c.status == "True"
+        )
+      kind: TalosControlPlane
+      namespace: syn-cluster-api
+      timeout: 30m
+    - apiVersion: cluster.x-k8s.io/v1beta2
+      expr: |
+        status.phase == "Running"
+        && status.conditions.exists(c, c.type == "Available" && c.status == "True")
+      kind: MachineDeployment
+      namespace: syn-cluster-api
+      timeout: 30m
+  talos:
+    version: v1.13.10

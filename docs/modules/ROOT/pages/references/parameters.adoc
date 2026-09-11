@@ -28,7 +28,13 @@ default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/
 
 The Talos version to use when provisioning the cluster.
 
-NOTE: The Talos CAPI provider uses the value of this parameter only to decide how to render the Talos `MachineConfiguration`.
+[NOTE]
+====
+The Talos CAPI provider uses the value of this parameter only to decide how to render the Talos `MachineConfiguration`.
+This decision is made solely based on the Talos major and minor version provided in this parameter.
+====
+
+NOTE: The component uses the full Talos version when rendering the Tuppr `TalosUpgrade`.
 
 == `talosSchematicUUID`
 
