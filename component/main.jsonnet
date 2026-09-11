@@ -219,6 +219,18 @@ local tupprAccessPatch = {
   },
 };
 
+local etcdBackupAccessPatch = {
+  machine: {
+    features: {
+      kubernetesTalosAPIAccess: {
+        enabled: true,
+        allowedRoles: [ 'os:etcd:backup' ],
+        allowedKubernetesNamespaces: [ 'syn-talos-backup' ],
+      },
+    },
+  },
+};
+
 // NOTE(sg): We sort user-provided control plane patches by their names in
 // asciibetical order.
 local controlPlaneStrategicPatches = [
@@ -230,6 +242,7 @@ local controlPlaneStrategicPatches = [
   ))
 ] + authenticationPatch + [
   std.manifestJsonMinified(tupprAccessPatch),
+  std.manifestJsonMinified(etcdBackupAccessPatch),
 ];
 
 local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {

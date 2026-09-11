@@ -23,4 +23,4 @@ Instead, please see the https://kb.vshn.ch/talos/how-tos/minor-upgrade.html[VSHN
 
 == Talos API access
 
-The component configures Talos API access for Tuppr by applying an appropriate `MachineConfiguration` patch to the Talos control plane nodes.
+The component configures Talos API access for Tuppr and the etcd backups managed by component https://hub.syn.tools/talos-backup/[talos-backup] by applying an appropriate `MachineConfiguration` patches to the Talos control plane nodes.
