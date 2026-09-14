@@ -231,31 +231,6 @@ local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
   },
 };
 
-// NOTE(sg): figure out if this is even needed after initial bootstrap
-local capiClusterResourceSetBootstrap = capi.ClusterResourceSet(
-  'cloudscale-bootstrap-%s' % params.clusterName
-) {
-  spec: {
-    strategy: 'ApplyOnce',
-    clusterSelector: {
-      matchLabels: {
-        [resourceSetLabelKey]: 'cloudscale',
-      },
-    },
-    resources: [
-      // NOTE(sg): the configmaps are externally generated for bootstrap
-      {
-        name: '%s-ccm' % params.clusterName,
-        kind: 'ConfigMap',
-      },
-      {
-        name: '%s-cilium' % params.clusterName,
-        kind: 'ConfigMap',
-      },
-    ],
-  },
-};
-
 local capiWorkerGroup(name) =
   local talosConfigTemplate = capi_talos.TalosConfigTemplate(name) {
     metadata+: {
@@ -379,7 +354,6 @@ else
       capiCloudscaleCluster,
       capiCloudscaleMachineTemplateControlPlane,
       capiTalosControlPlane,
-      capiClusterResourceSetBootstrap,
     ],
   } + {
     ['worker_group_%s' % wg.name]: wg.resources
