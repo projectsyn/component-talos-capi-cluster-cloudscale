@@ -6,21 +6,10 @@ local capi = import 'lib/capi-core.libsonnet';
 local capcs = import 'lib/capi-provider-cloudscale.libsonnet';
 local capi_talos = import 'lib/capi-provider-talos.libsonnet';
 
+local utils = import 'utils.libsonnet';
+
 local inv = kap.inventory();
 local params = inv.parameters.talos_capi_cluster_cloudscale;
-
-local validateTalosVersion(tver) =
-  local parts = std.split(tver, '.');
-  assert std.length(parts) == 2 : 'Expected Talos version to contain exacty 1 dot';
-  local major = std.parseJson(parts[0]);
-  local minor = std.parseJson(parts[1]);
-  if !std.isInteger(major) || !std.isInteger(minor) then
-    error "Expected Talos version to be '<major>.<minor>', got '%s'" % tver
-  else
-    {
-      major: major,
-      minor: minor,
-    };
 
 local cloudscaleImageSlug = 'custom:%s' % params.cloudscale.customImageSlug;
 
@@ -101,11 +90,13 @@ local talosStrategicPatch = {
     install: {
       disk: '/dev/sda',
       wipe: true,
-      // NOTE(sg): image is required by Tuppr in order to compute the update
+      // NOTE(sg): image is required by Tuppr in order to compute the update.
+      // We don't use the user-supplied patch version here, so that pure patch
+      // upgrades (without new Talos base image) don't create new machines.
       image: 'factory.talos.dev/openstack-installer/%(schematic_uuid)s:v%(version)s' % {
         schematic_uuid: params.talosSchematicUUID,
         version:
-          '%(major)s.%(minor)s.0' % validateTalosVersion(params.talosVersion),
+          '%(major)s.%(minor)s.0' % utils.validateTalosVersion(params.talosVersion),
       },
     },
     kubelet: {
@@ -197,10 +188,33 @@ local authenticationPatch =
       }),
     ] else [];
 
+// NOTE(sg): kubernetesTalosAPIAccess can only be configured on control plane
+// nodes, worker provisioning fails with the following error if
+// kubernetesTalosAPIAccess is present in the machine configuration:
+//
+// failed to validate config acquired via platform openstack: 1 error occurred:
+//  * v1alpha1.Config: 1 error occurred:
+//    * feature Kubernetes Talos API Access can only be enabled on control plane machines
+local tupprAccessPatch = {
+  machine: {
+    features: {
+      kubernetesTalosAPIAccess: {
+        enabled: true,
+        allowedKubernetesNamespaces: [
+          'syn-tuppr',
+        ],
+        allowedRoles: [ 'os:admin' ],
+      },
+    },
+  },
+};
+
 local controlPlaneStrategicPatches = [
   std.manifestJsonMinified(patch)
   for patch in std.objectValues(params.talosControlPlane.strategicPatches)
-] + authenticationPatch;
+] + authenticationPatch + [
+  std.manifestJsonMinified(tupprAccessPatch),
+];
 
 local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
   metadata+: filteredMetadata(std.get(params.talosControlPlane, 'metadata', {})),
@@ -219,7 +233,7 @@ local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
     controlPlaneConfig+: {
       controlplane+: {
         generateType: 'controlplane',
-        talosVersion: '%(major)s.%(minor)s' % validateTalosVersion(params.talosVersion),
+        talosVersion: '%(major)s.%(minor)s' % utils.validateTalosVersion(params.talosVersion),
         hostname: {
           // we want to use the VM name defined by the cloudscale CAPI
           // provider.
@@ -240,7 +254,7 @@ local capiWorkerGroup(name) =
       template: {
         spec: {
           generateType: 'join',
-          talosVersion: '%(major)s.%(minor)s' % validateTalosVersion(params.talosVersion),
+          talosVersion: '%(major)s.%(minor)s' % utils.validateTalosVersion(params.talosVersion),
           hostname: {
             source: 'InfrastructureName',
           },
