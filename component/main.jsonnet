@@ -9,6 +9,14 @@ local capi_talos = import 'lib/capi-provider-talos.libsonnet';
 local inv = kap.inventory();
 local params = inv.parameters.talos_capi_cluster_cloudscale;
 
+assert
+  std.member(inv.applications, 'capi-core')
+  && std.member(inv.applications, 'capi-provider-cloudscale')
+  && std.member(inv.applications, 'capi-provider-talos')
+  : '\n\nComponent talos-capi-cluster-cloudscale requires components '
+    + 'capi-core, capi-provider-cloudscale, and capi-provider-talos';
+
+
 local validateTalosVersion(tver) =
   local parts = std.split(tver, '.');
   assert std.length(parts) == 2 : 'Expected Talos version to contain exacty 1 dot';

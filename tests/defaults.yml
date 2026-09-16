@@ -1,5 +1,8 @@
 applications:
   - cilium
+  - capi-core
+  - capi-provider-cloudscale
+  - capi-provider-talos
 
 parameters:
   kapitan:
