@@ -1,5 +1,11 @@
 = talos-capi-cluster-cloudscale
 
-talos-capi-cluster-cloudscale is a Commodore component to manage talos-capi-cluster-cloudscale.
+talos-capi-cluster-cloudscale is a Commodore component to manage https://www.siderolabs.com/talos-linux[Talos] clusters using https://cluster-api.sigs.k8s.io/[Cluster API (CAPI)] on https://cloudscale.ch[cloudscale].
+
+The component expects that the following Cluster API components are available on the target cluster:
+
+* https://hub.syn.tools/capi-core[component-capi-core]
+* https://hub.syn.tools/capi-provider-cloudscale[component-capi-provider-cloudscale]
+* https://hub.syn.tools/capi-provider-talos[component-capi-provider-talos]
 
 See the xref:references/parameters.adoc[parameters] reference for further details.

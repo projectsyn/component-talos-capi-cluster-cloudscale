@@ -6,14 +6,132 @@ The parent key for all of the following parameters is `talos_capi_cluster_clouds
 
 [horizontal]
 type:: string
-default:: `syn-talos-capi-cluster-cloudscale`
+default:: `syn-cluster-api`
 
 The namespace in which to deploy this component.
 
+TIP: We recommend using `syn-cluster-api` if you're also using the Commodore CAPI components.
 
-== Example
+== `clusterName`
 
-[source,yaml]
-----
-namespace: example-namespace
-----
+[horizontal]
+type:: string
+default:: `${cluster:name}`
+
+The name to use for the Cluster API cluster.
+
+== `talosVersion`
+
+[horizontal]
+type:: string
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+The Talos version to use when provisioning the cluster.
+
+NOTE: The Talos CAPI provider uses the value of this parameter only to decide how to render the Talos `MachineConfiguration`.
+
+== `talosSchematicUUID`
+
+[horizontal]
+type:: string
+default:: `376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba`
+
+The https://docs.siderolabs.com/talos/v1.13/learn-more/image-factory#schematics[Talos schematic UUID] to use when provisioning the cluster.
+This should match the schematic UUID that's used to generate the base image specified in parameter `cloudscale.customImageSlug`.
+
+== `kubernetesVersion`
+
+[horizontal]
+type:: string
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+The Kubernetes version to use when provisioning the cluster.
+Changing the value of this parameter will trigger node replacements.
+
+== `apiURL`
+
+[horizontal]
+type:: string
+default:: `""`
+
+When set to a non-empty string, the component configures Talos to add the value of this parameter as an additional SAN to the Kubernetes API certificate.
+This enables users to use the value of this parameter to connect to the Kubernetes API.
+
+== `cni`
+
+[horizontal]
+type:: string
+default:: `cilium`
+
+The CNI to use when provisioning the cluster.
+If this is set to a value other than `flannel`, the component configures Talos to expect an externally provisioned CNI by setting `network.cni.name=none` in the `MachineConfiguration`.
+
+When the parameter is set to `cilium` and Cilium's kube-proxy replacement is enabled, the component configures Talos with `proxy.disabled=true` to disable kube-proxy.
+
+== `cloudscale`
+
+This section contains configurations that refer to cloudscale resources.
+
+=== `cloudscale.customImageSlug`
+=== `cloudscale.privateNetwork`
+=== `region`
+
+== `controlPlane`
+
+== `workerGroups`
+
+== `cluster`
+
+[horizontal]
+type:: object
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+This parameter allows customizing the CAPI `Cluster` resource rendered by the component.
+The component looks for fields `metadata` and `spec` and merges those with the hard-coded configuration.
+
+== `cloudscaleCluster`
+
+[horizontal]
+type:: object
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+This parameter allows customizing the CAPI `CloudscaleCluster` resource rendered by the component.
+The component looks for fields `metadata` and `spec` and merges those with the hard-coded configuration.
+
+== `talosControlPlane`
+
+[horizontal]
+type:: object
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+This parameter allows customizing the CAPI `TalosControlPlane` resource rendered by the component.
+The component looks for fields `metadata` and `spec` and merges those with the hard-coded configuration.
+
+Additionally, the component applies all entries of field `strategicPatches` to the Talos control plane nodes only.
+See <<`talosStrategicPatches`>> for details on the semantics of the parameter.
+
+== `talosStrategicPatches`
+
+[horizontal]
+type:: object
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+Each entry of this parameter is applies to all Talos nodes.
+The component ignores the object field names, and expects that the values are valid strategic patches when converted to JSON.
+
+== `kubernetesApiServer`
+
+[horizontal]
+type:: object
+default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
+
+=== `kubernetesApiServer.authenticationConfigurationJWT`
+
+[horizontal]
+type:: object
+default:: `{}`
+
+This parameter allows configuring  custom entries for field `jwt` of the https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration[Kubernetes API server `AuthenticationConfiguration`].
+This parameter is intended to enable users to configure OIDC authentication for the Talos Kubernetes API server.
+
+NOTE: This parameter may change once we upgrade to Talos 1.14.
