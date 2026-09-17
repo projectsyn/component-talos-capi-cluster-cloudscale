@@ -117,7 +117,11 @@ type:: object
 default:: https://github.com/projectsyn/component-talos-capi-cluster-cloudscale/blob/master/class/defaults.yml[See `class/defaults.yml`]
 
 Each entry of this parameter is applies to all Talos nodes.
-The component ignores the object field names, and expects that the values are valid strategic patches when converted to JSON.
+The component sorts the patches by object field name to ensure stable patch order.
+This ensures that patches are applied in a predictable order.
+The component expects that the values are valid strategic patches when converted to JSON.
+
+NOTE: If multiple patches modify the same field, the values provided by patches that are ordered later take precedence.
 
 == `kubernetesApiServer`
 

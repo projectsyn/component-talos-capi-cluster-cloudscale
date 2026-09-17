@@ -153,10 +153,13 @@ local talosStrategicPatch = {
   },
 };
 
-// TODO(sg): does order matter here?
+// NOTE(sg): We order user-provided patches by their names in asciibetical
+// order.
 local strategicPatches = [
-  std.manifestJsonMinified(patch)
-  for patch in std.objectValues(params.talosStrategicPatches)
+  std.manifestJsonMinified(params.talosStrategicPatches[p])
+  for p in std.sort(std.objectFields(
+    params.talosStrategicPatches
+  ))
 ] + [
   std.manifestJsonMinified(talosStrategicPatch),
 ];
@@ -205,9 +208,15 @@ local authenticationPatch =
       }),
     ] else [];
 
+// NOTE(sg): We sort user-provided control plane patches by their names in
+// asciibetical order.
 local controlPlaneStrategicPatches = [
-  std.manifestJsonMinified(patch)
-  for patch in std.objectValues(params.talosControlPlane.strategicPatches)
+  std.manifestJsonMinified(
+    params.talosControlPlane.strategicPatches[p]
+  )
+  for p in std.sort(std.objectFields(
+    params.talosControlPlane.strategicPatches
+  ))
 ] + authenticationPatch;
 
 local capiTalosControlPlane = capi_talos.TalosControlPlane(params.clusterName) {
