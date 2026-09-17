@@ -21,18 +21,18 @@ spec:
       infrastructureRef:
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: CloudscaleMachineTemplate
-        name: worker-140736b57cf90932
+        name: worker-51894217089d35c8
       version: v1.36.4
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudscaleMachineTemplate
 metadata:
-  name: worker-140736b57cf90932
+  name: worker-51894217089d35c8
 spec:
   template:
     spec:
       flavor: plus-16-4
-      image: custom:talos-v1.13-37656798
+      image: custom:talos-v1.13.10-37656798
       interfaces:
         - network: privnet-c-green-test-1234
       rootVolumeSize: 50
