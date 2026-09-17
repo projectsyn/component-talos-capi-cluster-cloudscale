@@ -1,3 +1,27 @@
-# Overwrite parameters here
+applications:
+  - cilium
+  - capi-core
+  - capi-provider-cloudscale
+  - capi-provider-talos
 
-# parameters: {...}
+parameters:
+  kapitan:
+    dependencies:
+      - type: https
+        source: https://raw.githubusercontent.com/projectsyn/component-capi-core/master/lib/capi-core.libsonnet
+        output_path: vendor/lib/capi-core.libsonnet
+      - type: https
+        source: https://raw.githubusercontent.com/projectsyn/component-capi-provider-cloudscale/master/lib/capi-provider-cloudscale.libsonnet
+        output_path: vendor/lib/capi-provider-cloudscale.libsonnet
+      - type: https
+        source: https://raw.githubusercontent.com/projectsyn/component-capi-provider-talos/master/lib/capi-provider-talos.libsonnet
+        output_path: vendor/lib/capi-provider-talos.libsonnet
+
+  cilium:
+    cilium_helm_values:
+      kubeProxyReplacement: "true"
+
+  capi_provider_talos:
+    images:
+      capi-controlplane-provider-talos:
+        tag: v0.6.0-alpha.2
