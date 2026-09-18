@@ -44,6 +44,10 @@ local talosUpgrade = tuppr.TalosUpgrade('cluster') {
             c, c.type == "EtcdClusterHealthyCondition" && c.status == "True"
           ) && status.conditions.exists(
             c, c.type == "ControlPlaneComponentsHealthy" && c.status == "True"
+          ) && status.conditions.exists(
+            c, c.type == "Ready" && c.status == "True"
+          ) && status.conditions.exists(
+            c, c.type == "Available" && c.status == "True"
           )
         |||,
       },
