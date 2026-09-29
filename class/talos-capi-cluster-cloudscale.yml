@@ -8,5 +8,6 @@ parameters:
       - input_paths:
           - ${_base_directory}/component/main.jsonnet
           - ${_base_directory}/component/tuppr-talosupgrade.jsonnet
+          - ${_base_directory}/component/ca-fact.jsonnet
         input_type: jsonnet
         output_path: talos-capi-cluster-cloudscale/

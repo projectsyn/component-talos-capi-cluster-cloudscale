@@ -1,0 +1,144 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations: {}
+  labels:
+    name: cluster-ca-dynamic-fact-manager
+  name: cluster-ca-dynamic-fact-manager
+  namespace: syn-cluster-api
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations: {}
+  labels:
+    name: cluster-ca-dynamic-fact-manager
+  name: cluster:ca-dynamic-fact-manager
+  namespace: syn-cluster-api
+rules:
+  - apiGroups:
+      - ''
+    resourceNames:
+      - c-green-test-1234-ca
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations: {}
+  labels:
+    name: cluster-ca-dynamic-fact-manager
+  name: cluster:ca-dynamic-fact-manager
+  namespace: syn-cluster-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cluster:ca-dynamic-fact-manager
+subjects:
+  - kind: ServiceAccount
+    name: cluster-ca-dynamic-fact-manager
+    namespace: syn-cluster-api
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations: {}
+  labels:
+    name: cluster-ca-dynamic-fact-manager
+  name: cluster:ca-dynamic-fact-manager
+  namespace: syn
+rules:
+  - apiGroups:
+      - ''
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resourceNames:
+      - capi-ca-fact
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - update
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations: {}
+  labels:
+    name: cluster-ca-dynamic-fact-manager
+  name: cluster:ca-dynamic-fact-manager
+  namespace: syn
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cluster:ca-dynamic-fact-manager
+subjects:
+  - kind: ServiceAccount
+    name: cluster-ca-dynamic-fact-manager
+    namespace: syn-cluster-api
+---
+apiVersion: espejote.io/v1alpha1
+kind: ManagedResource
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  labels:
+    app.kubernetes.io/name: cluster-ca-dynamic-fact
+  name: cluster-ca-dynamic-fact
+  namespace: syn-cluster-api
+spec:
+  applyOptions:
+    force: true
+  context:
+    - name: source
+      resource:
+        apiVersion: v1
+        kind: Secret
+        name: c-green-test-1234-ca
+  serviceAccountRef:
+    name: cluster-ca-dynamic-fact-manager
+  template: |
+    local esp = import 'espejote.libsonnet';
+    local src =
+      local srcs = esp.context().source;
+      assert std.length(srcs) == 1 : 'Expected source context to have length 1';
+      srcs[0];
+    {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'capi-ca-fact',
+        namespace: 'syn',
+        labels: {
+          'app.kubernetes.io/managed-by': 'espejote',
+          'steward.syn.tools/include-facts': '',
+        },
+      },
+      data: {
+        facts: std.manifestJsonMinified({
+          talosAPICertificateAuthorityData: src.data['tls.crt'],
+        }),
+      },
+    }
+  triggers:
+    - name: source
+      watchContextResource:
+        name: source
+    - name: target
+      watchResource:
+        apiVersion: v1
+        kind: ConfigMap
+        name: capi-ca-fact
+        namespace: syn
